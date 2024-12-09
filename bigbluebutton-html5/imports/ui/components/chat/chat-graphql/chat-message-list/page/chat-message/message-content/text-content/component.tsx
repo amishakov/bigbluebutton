@@ -5,17 +5,17 @@ import Styled from './styles';
 interface ChatMessageTextContentProps {
   text: string;
   emphasizedMessage: boolean;
+  dataTest?: string | null;
 }
 const ChatMessageTextContent: React.FC<ChatMessageTextContentProps> = ({
   text,
   emphasizedMessage,
+  dataTest = 'messageContent',
 }) => {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - temporary, while meteor exists in the project
-  const { allowedElements } = Meteor.settings.public.chat;
+  const { allowedElements } = window.meetingClientSettings.public.chat;
 
   return (
-    <Styled.ChatMessage emphasizedMessage={emphasizedMessage} data-test="messageContent">
+    <Styled.ChatMessage emphasizedMessage={emphasizedMessage} data-test={dataTest}>
       <ReactMarkdown
         linkTarget="_blank"
         allowedElements={allowedElements}

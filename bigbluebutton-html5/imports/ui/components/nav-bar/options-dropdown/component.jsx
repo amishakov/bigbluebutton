@@ -3,17 +3,21 @@ import { defineMessages, injectIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import EndMeetingConfirmationContainer from '/imports/ui/components/end-meeting-confirmation/container';
 import AboutContainer from '/imports/ui/components/about/container';
-import MobileAppModal from '/imports/ui/components/mobile-app-modal/container';
+import MobileAppModal from '/imports/ui/components/mobile-app-modal/mobile-app-modal-graphql/component';
+import LayoutModalContainer from '/imports/ui/components/layout/modal/container';
 import OptionsMenuContainer from '/imports/ui/components/settings/container';
 import BBBMenu from '/imports/ui/components/common/menu/component';
 import ShortcutHelpComponent from '/imports/ui/components/shortcut-help/component';
-import withShortcutHelper from '/imports/ui/components/shortcut-help/service';
 import FullscreenService from '/imports/ui/components/common/fullscreen-button/service';
 import { colorDanger, colorWhite } from '/imports/ui/stylesheets/styled-components/palette';
 import { OptionsDropdownItemType } from 'bigbluebutton-html-plugin-sdk/dist/cjs/extensible-areas/options-dropdown-item/enums';
 import Styled from './styles';
 import browserInfo from '/imports/utils/browserInfo';
 import deviceInfo from '/imports/utils/deviceInfo';
+import Session from '/imports/ui/services/storage/in-memory';
+import { LAYOUT_TYPE } from '/imports/ui/components/layout/enums';
+import { getSettingsSingletonInstance } from '/imports/ui/services/settings';
+import Toggle from '/imports/ui/components/common/switch/component';
 
 const intlMessages = defineMessages({
   optionsLabel: {
@@ -81,7 +85,7 @@ const intlMessages = defineMessages({
     description: 'Describes help option',
   },
   endMeetingLabel: {
-    id: 'app.navBar.optionsDropdown.endMeetingLabel',
+    id: 'app.navBar.optionsDropdown.endMeetingForAllLabel',
     description: 'End meeting options label',
   },
   endMeetingDesc: {
@@ -96,6 +100,22 @@ const intlMessages = defineMessages({
     id: 'app.audio.captions.button.stop',
     description: 'Stop audio captions',
   },
+  layoutModal: {
+    id: 'app.actionsBar.actionsDropdown.layoutModal',
+    description: 'Label for layouts selection button',
+  },
+  awayLabel: {
+    id: 'app.actionsBar.reactions.away',
+    description: 'Away Label',
+  },
+  activeLabel: {
+    id: 'app.actionsBar.reactions.active',
+    description: 'Active Label',
+  },
+  presenceLabel: {
+    id: 'app.navBar.optionsDropdown.presenceLabel',
+    description: 'Presence Label',
+  },
 });
 
 const propTypes = {
@@ -109,10 +129,11 @@ const propTypes = {
   isBreakoutRoom: PropTypes.bool,
   isMeteorConnected: PropTypes.bool.isRequired,
   isDropdownOpen: PropTypes.bool,
-  audioCaptionsEnabled: PropTypes.bool.isRequired,
+  audioCaptionsEnabled: PropTypes.bool,
   audioCaptionsActive: PropTypes.bool.isRequired,
   audioCaptionsSet: PropTypes.func.isRequired,
   isMobile: PropTypes.bool.isRequired,
+  isDirectLeaveButtonEnabled: PropTypes.bool.isRequired,
   optionsDropdownItems: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.string,
     type: PropTypes.string,
@@ -126,10 +147,9 @@ const defaultProps = {
   shortcuts: '',
   isBreakoutRoom: false,
   isDropdownOpen: false,
+  audioCaptionsEnabled: false,
 };
 
-const ALLOW_FULLSCREEN = Meteor.settings.public.app.allowFullscreen;
-const BBB_TABLET_APP_CONFIG = Meteor.settings.public.app.bbbTabletApp;
 const { isSafari, isTabletApp } = browserInfo;
 const FULLSCREEN_CHANGE_EVENT = isSafari ? 'webkitfullscreenchange' : 'fullscreenchange';
 
@@ -142,8 +162,9 @@ class OptionsDropdown extends PureComponent {
       isShortcutHelpModalOpen: false,
       isOptionsMenuModalOpen: false,
       isEndMeetingConfirmationModalOpen: false,
-      isMobileAppModalOpen:false,
+      isMobileAppModalOpen: false,
       isFullscreen: false,
+      isLayoutModalOpen: false,
     };
 
     // Set the logout code to 680 because it's not a real code and can be matched on the other side
@@ -156,6 +177,7 @@ class OptionsDropdown extends PureComponent {
     this.setMobileAppModalIsOpen = this.setMobileAppModalIsOpen.bind(this);
     this.setAboutModalIsOpen = this.setAboutModalIsOpen.bind(this);
     this.setShortcutHelpModalIsOpen = this.setShortcutHelpModalIsOpen.bind(this);
+    this.setLayoutModalIsOpen = this.setLayoutModalIsOpen.bind(this);
   }
 
   componentDidMount() {
@@ -182,6 +204,8 @@ class OptionsDropdown extends PureComponent {
     } = this.props;
     const { isFullscreen } = this.state;
 
+    const ALLOW_FULLSCREEN = window.meetingClientSettings.public.app.allowFullscreen;
+
     if (noIOSFullscreen || !ALLOW_FULLSCREEN) return null;
 
     let fullscreenLabel = intl.formatMessage(intlMessages.fullscreenLabel);
@@ -201,7 +225,7 @@ class OptionsDropdown extends PureComponent {
           icon: fullscreenIcon,
           label: fullscreenLabel,
           description: fullscreenDesc,
-          onClick: handleToggleFullscreen,
+          onClick: () => handleToggleFullscreen(),
         },
       )
     );
@@ -213,7 +237,7 @@ class OptionsDropdown extends PureComponent {
     userLeaveMeeting();
     // we don't check askForFeedbackOnLogout here,
     // it is checked in meeting-ended component
-    Session.set('codeError', this.LOGOUT_CODE);
+    Session.setItem('codeError', this.LOGOUT_CODE);
   }
 
   setAboutModalIsOpen(value) {
@@ -236,10 +260,15 @@ class OptionsDropdown extends PureComponent {
     this.setState({isMobileAppModalOpen: value})
   }
 
+  setLayoutModalIsOpen(value) {
+    this.setState({ isLayoutModalOpen: value });
+  }
+
   renderMenuItems() {
     const {
       intl, amIModerator, isBreakoutRoom, isMeteorConnected, audioCaptionsEnabled,
       audioCaptionsActive, audioCaptionsSet, isMobile, optionsDropdownItems,
+      isDirectLeaveButtonEnabled, isLayoutsEnabled, away, handleToggleAFK,
     } = this.props;
 
     const { isIos } = deviceInfo;
@@ -250,11 +279,48 @@ class OptionsDropdown extends PureComponent {
       showHelpButton: helpButton,
       helpLink,
       allowLogout: allowLogoutSetting,
-    } = Meteor.settings.public.app;
+    } = window.meetingClientSettings.public.app;
 
     this.menuItems = [];
 
+    const actionCustomStyles = {
+      paddingLeft: 0,
+      paddingRight: 0,
+      paddingTop: isMobile ? '0' : '0.5rem',
+      paddingBottom: isMobile ? '0' : '0.5rem',
+    };
+
+    const ToggleAFKLabel = () => (away
+      ? intl.formatMessage(intlMessages.awayLabel)
+      : intl.formatMessage(intlMessages.activeLabel));
+
+    this.menuItems.push({
+      label: (
+        <Styled.AwayOption>
+          <>{intl.formatMessage(intlMessages.presenceLabel)}</>
+          <Styled.ToggleButtonWrapper>
+            <Styled.AFKLabel>{ToggleAFKLabel()}</Styled.AFKLabel>
+            <Toggle
+              icons={false}
+              checked={away}
+              onChange={handleToggleAFK}
+              ariaLabel={ToggleAFKLabel()}
+              showToggleLabel={false}
+            />
+          </Styled.ToggleButtonWrapper>
+        </Styled.AwayOption>
+      ),
+      key: 'none',
+      isToggle: true,
+      customStyles: { ...actionCustomStyles, width: 'auto' },
+    }, {
+      key: 'separator-01',
+      isSeparator: true,
+    });
+
     this.getFullscreenItem(this.menuItems);
+
+    const BBB_TABLET_APP_CONFIG = window.meetingClientSettings.public.app.bbbTabletApp;
 
     this.menuItems.push(
       {
@@ -299,7 +365,7 @@ class OptionsDropdown extends PureComponent {
           icon: 'popout_window',
           label: intl.formatMessage(intlMessages.openAppLabel),
           onClick: () => this.setMobileAppModalIsOpen(true),
-         }
+        },
       );
     }
 
@@ -325,11 +391,25 @@ class OptionsDropdown extends PureComponent {
         description: intl.formatMessage(intlMessages.hotkeysDesc),
         onClick: () => this.setShortcutHelpModalIsOpen(true),
       },
-      {
-        key: 'separator-01',
-        isSeparator: true,
-      },
     );
+
+    const Settings = getSettingsSingletonInstance();
+    const { selectedLayout } = Settings.application;
+    const shouldShowManageLayoutButton = selectedLayout !== LAYOUT_TYPE.CAMERAS_ONLY
+      && selectedLayout !== LAYOUT_TYPE.PRESENTATION_ONLY
+      && selectedLayout !== LAYOUT_TYPE.PARTICIPANTS_AND_CHAT_ONLY;
+
+    if (shouldShowManageLayoutButton && isLayoutsEnabled) {
+      this.menuItems.push(
+        {
+          key: 'list-item-layout-modal',
+          icon: 'manage_layout',
+          label: intl.formatMessage(intlMessages.layoutModal),
+          onClick: () => this.setLayoutModalIsOpen(true),
+          dataTest: 'manageLayoutBtn',
+        },
+      );
+    }
 
     optionsDropdownItems.forEach((item) => {
       switch (item.type) {
@@ -352,32 +432,37 @@ class OptionsDropdown extends PureComponent {
       }
     });
 
-    if (allowLogoutSetting && isMeteorConnected) {
-      this.menuItems.push(
-        {
+    if (isMeteorConnected && !isDirectLeaveButtonEnabled) {
+      const bottomItems = [{
+        key: 'list-item-separator',
+        isSeparator: true,
+      }];
+
+      if (allowLogoutSetting) {
+        bottomItems.push({
           key: 'list-item-logout',
-          dataTest: 'logout',
+          dataTest: 'optionsLogoutButton',
           icon: 'logout',
           label: intl.formatMessage(intlMessages.leaveSessionLabel),
           description: intl.formatMessage(intlMessages.leaveSessionDesc),
           onClick: () => this.leaveSession(),
-        },
-      );
-    }
+        });
+      }
 
-    if (allowedToEndMeeting && isMeteorConnected) {
-      const customStyles = { background: colorDanger, color: colorWhite };
+      if (allowedToEndMeeting) {
+        const customStyles = { background: colorDanger, color: colorWhite };
 
-      this.menuItems.push(
-        {
+        bottomItems.push({
           key: 'list-item-end-meeting',
-          icon: 'application',
+          icon: 'close',
           label: intl.formatMessage(intlMessages.endMeetingLabel),
           description: intl.formatMessage(intlMessages.endMeetingDesc),
           customStyles,
           onClick: () => this.setEndMeetingConfirmationModalIsOpen(true),
-        },
-      );
+        });
+      }
+
+      if (bottomItems.length > 1) this.menuItems.push(...bottomItems);
     }
 
     return this.menuItems;
@@ -404,8 +489,10 @@ class OptionsDropdown extends PureComponent {
       isRTL,
     } = this.props;
 
-    const { isAboutModalOpen, isShortcutHelpModalOpen, isOptionsMenuModalOpen,
-      isEndMeetingConfirmationModalOpen, isMobileAppModalOpen, } = this.state;
+    const {
+      isAboutModalOpen, isShortcutHelpModalOpen, isOptionsMenuModalOpen,
+      isEndMeetingConfirmationModalOpen, isMobileAppModalOpen, isLayoutModalOpen,
+    } = this.state;
 
     const customStyles = { top: '1rem' };
 
@@ -451,10 +538,17 @@ class OptionsDropdown extends PureComponent {
           "low", EndMeetingConfirmationContainer)}
         {this.renderModal(isMobileAppModalOpen, this.setMobileAppModalIsOpen, "low", 
           MobileAppModal)}
+        {this.renderModal(
+          isLayoutModalOpen,
+          this.setLayoutModalIsOpen,
+          'low',
+          LayoutModalContainer,
+        )}
+
       </>
     );
   }
 }
 OptionsDropdown.propTypes = propTypes;
 OptionsDropdown.defaultProps = defaultProps;
-export default withShortcutHelper(injectIntl(OptionsDropdown), 'openOptions');
+export default injectIntl(OptionsDropdown);

@@ -1,7 +1,7 @@
 import React, { createContext, useState } from 'react';
 import { ExtensibleArea } from '/imports/ui/components/plugins-engine/extensible-areas/types';
-import { ChatMessagesGraphqlVariablesAndQuery, PluginsContextType, UserListGraphqlVariables } from './types';
-import { CHAT_MESSAGE_PUBLIC_SUBSCRIPTION } from '../../chat/chat-graphql/chat-message-list/page/queries';
+import { PluginsContextType } from './types';
+import { DomElementManipulationIdentifiers } from '../../plugins-engine/dom-element-manipulation/types';
 
 export const PluginsContext = createContext<PluginsContextType>({} as PluginsContextType);
 
@@ -10,26 +10,17 @@ export const PluginsContextProvider = ({ children, ...props }: any) => {
   const [pluginsExtensibleAreasAggregatedState, setPluginsExtensibleAreasAggregatedState] = useState<ExtensibleArea>(
     {} as ExtensibleArea,
   );
-  const [userListGraphqlVariables, setUserListGraphqlVariables] = useState<UserListGraphqlVariables>(
-    {} as UserListGraphqlVariables,
-  );
-  const [
-    chatMessagesGraphqlVariablesAndQuery,
-    setChatMessagesGraphqlVariablesAndQuery,
-  ] = useState<ChatMessagesGraphqlVariablesAndQuery>(
-    { query: CHAT_MESSAGE_PUBLIC_SUBSCRIPTION } as ChatMessagesGraphqlVariablesAndQuery,
-  );
-
+  const [domElementManipulationIdentifiers, setDomElementManipulationIdentifiers] = useState<
+    DomElementManipulationIdentifiers
+  >({} as DomElementManipulationIdentifiers);
   return (
     <PluginsContext.Provider
       value={{
         ...props,
         setPluginsExtensibleAreasAggregatedState,
         pluginsExtensibleAreasAggregatedState,
-        userListGraphqlVariables,
-        setUserListGraphqlVariables,
-        chatMessagesGraphqlVariablesAndQuery,
-        setChatMessagesGraphqlVariablesAndQuery,
+        domElementManipulationIdentifiers,
+        setDomElementManipulationIdentifiers,
       }}
     >
       {children}

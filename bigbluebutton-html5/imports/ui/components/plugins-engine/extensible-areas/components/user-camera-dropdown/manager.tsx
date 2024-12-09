@@ -19,10 +19,9 @@ const UserCameraDropdownPluginStateContainer = ((
   const [
     userCameraDropdownItems,
     setUserCameraDropdownItems,
-  ] = useState<PluginSdk.UserCameraDropdownItem[]>([]);
+  ] = useState<PluginSdk.UserCameraDropdownInterface[]>([]);
 
   const {
-    pluginsExtensibleAreasAggregatedState,
     setPluginsExtensibleAreasAggregatedState,
   } = useContext(PluginsContext);
 
@@ -32,21 +31,21 @@ const UserCameraDropdownPluginStateContainer = ((
 
     // Update context with computed aggregated list of all plugin provided toolbar items
     const aggregatedUserCameraDropdownItems = (
-      [] as PluginSdk.UserCameraDropdownItem[]).concat(
+      [] as PluginSdk.UserCameraDropdownInterface[]).concat(
       ...Object.values(extensibleAreaMap)
         .map((extensibleArea: ExtensibleArea) => extensibleArea.userCameraDropdownItems),
     );
-    setPluginsExtensibleAreasAggregatedState(
+    setPluginsExtensibleAreasAggregatedState((previousState) => (
       {
-        ...pluginsExtensibleAreasAggregatedState,
+        ...previousState,
         userCameraDropdownItems: aggregatedUserCameraDropdownItems,
-      },
-    );
+      }));
   }, [userCameraDropdownItems]);
 
-  pluginApi.setUserCameraDropdownItems = (items: PluginSdk.UserCameraDropdownItem[]) => {
-    const itemsWithId = items.map(generateItemWithId) as PluginSdk.UserCameraDropdownItem[];
-    return setUserCameraDropdownItems(itemsWithId);
+  pluginApi.setUserCameraDropdownItems = (items: PluginSdk.UserCameraDropdownInterface[]) => {
+    const itemsWithId = items.map(generateItemWithId) as PluginSdk.UserCameraDropdownInterface[];
+    setUserCameraDropdownItems(itemsWithId);
+    return itemsWithId.map((i) => i.id);
   };
   return null;
 }) as ExtensibleAreaComponentManager;

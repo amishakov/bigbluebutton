@@ -1,5 +1,4 @@
 import getFromUserSettings from '/imports/ui/services/users-settings';
-import { Meteor } from 'meteor/meteor';
 import { useEffect, useState } from 'react';
 
 interface ShortcutObject {
@@ -7,12 +6,12 @@ interface ShortcutObject {
   descId: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - temporary, while meteor exists in the project
-const BASE_SHORTCUTS: Array<ShortcutObject> = Meteor.settings.public.app.shortcuts;
-
 export function useShortcut(param: string): string {
   const [shortcut, setShortcut] = useState<string>('');
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - temporary, while meteor exists in the project
+  const BASE_SHORTCUTS: Array<ShortcutObject> = window.meetingClientSettings.public.app.shortcuts;
 
   useEffect(() => {
     const ENABLED_SHORTCUTS = getFromUserSettings('bbb_shortcuts', null);

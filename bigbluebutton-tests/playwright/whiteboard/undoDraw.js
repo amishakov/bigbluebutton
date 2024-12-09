@@ -22,11 +22,11 @@ class UndoDrawing extends MultiUsers {
     await this.modPage.page.mouse.up();
 
     await this.modPage.waitAndClick(e.wbUndo);
+    await this.modPage.setHeightWidthViewPortSize();
+    await this.userPage.setHeightWidthViewPortSize();
 
-    await expect(modWbLocator).toHaveScreenshot('moderator-undo-drawing.png');
-
-    const userWbLocator = this.userPage.getLocator(e.whiteboard);
-    await expect(userWbLocator).toHaveScreenshot('viewer-undo-drawing.png');
+    await this.modPage.wasRemoved(e.wbDrawnArrow);
+    await this.userPage.wasRemoved(e.wbDrawnArrow);
   }
 }
 

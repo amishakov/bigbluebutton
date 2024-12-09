@@ -1,15 +1,10 @@
 import styled, { createGlobalStyle } from 'styled-components';
-import { borderSize, borderSizeLarge } from '/imports/ui/stylesheets/styled-components/general';
-import { toolbarButtonColor, colorWhite, colorBlack } from '/imports/ui/stylesheets/styled-components/palette';
-import {
-  fontSizeLarger,
-} from '/imports/ui/stylesheets/styled-components/typography';
-import Button from '/imports/ui/components/common/button/component';
+import { colorOffWhite } from '/imports/ui/stylesheets/styled-components/palette';
 
 const TldrawV2GlobalStyle = createGlobalStyle`
   ${({ isPresenter, hasWBAccess }) => (!isPresenter && hasWBAccess) && `
     [data-testid="tools.hand"] {
-      display: none;
+      display: none !important;
     }
   `}
 
@@ -19,31 +14,27 @@ const TldrawV2GlobalStyle = createGlobalStyle`
     }
   `}
 
-  ${({ isRTL }) => (!isRTL) && `
-    .tlui-menu-zone {
-      right: auto;
-      left: 3.5rem;
+  ${({ isToolbarVisible }) => (!isToolbarVisible) && `
+    .tlui-toolbar,
+    .tlui-style-panel__wrapper {
+      visibility: hidden;
+    }
+    #WhiteboardOptionButton {
+      opacity: 0.2;
     }
   `}
 
-  ${({ isRTL }) => (isRTL) && `
-    .tlui-menu-zone {
-      right: 3.5rem;
-      left: auto;
-    }
-  `}
-
-  #presentationInnerWrapper > div:last-child {
+  #whiteboard-element {
     position: relative;
     height: 100%;
   }
 
-  #presentationInnerWrapper > div:last-child > * {
+  #whiteboard-element > * {
     position: relative; 
     height: 100%;
   }
 
-  #presentationInnerWrapper > div:last-child .tl-overlays {
+  #whiteboard-element .tl-overlays {
     left: 0px;
     bottom: 0px;
   }
@@ -51,7 +42,11 @@ const TldrawV2GlobalStyle = createGlobalStyle`
   .tlui-navigation-zone,
   .tlui-help-menu,
   .tlui-debug-panel {
-    display: none;
+    display: none !important;
+  }
+
+  .tl-container:focus-within {
+    outline: none !important;
   }
 
   .tlui-style-panel__wrapper {
@@ -60,10 +55,13 @@ const TldrawV2GlobalStyle = createGlobalStyle`
     position: relative;
   }
 
-  // Add the following lines to override height and width attributes for .tl-overlays__item
   .tl-overlays__item {
     height: auto !important;
     width: auto !important;
+  }
+
+  .tlui-popover__content {
+    left: -50px !important;
   }
 
   ${({ isPresenter, isMultiUserActive }) => !isPresenter && !isMultiUserActive && `
@@ -78,20 +76,152 @@ const TldrawV2GlobalStyle = createGlobalStyle`
     }
   `}
 
+  .tlui-toolbar__extras {
+    position: fixed !important;
+    top: 2px !important;
+    
+  }
+
+  .tlui-toolbar__extras__controls {
+    border-radius: var(--radius-4);
+    border: none;
+    background-color: ${colorOffWhite};
+    box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.16),
+      0px 2px 3px rgba(0, 0, 0, 0.24),
+      0px 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  ${({ isRTL }) => (!isRTL) && `
+    .tlui-toolbar__extras {
+      right: 0;
+      left: 50px !important;
+    }
+  `}
+
+  ${({ isRTL }) => (isRTL) && `
+    .tlui-toolbar__extras {
+      right: 50px !important;
+      left: 0;
+    }
+
+    .tlui-toolbar__extras__controls {
+      margin-right: 8px;
+      margin-left: 0;
+    }
+  `}
+
+  ${({ bgSelected }) => (bgSelected) && `
+      [data-testid="menu-item.toggle-lock"],
+      [data-testid="menu-item.toggle-locked"],
+      [data-testid="menu-item.paste"],
+      [data-testid="menu-item.copy"] {
+        display: none !important;
+      }
+  `}
+
+  [data-testid="menu-item.bring-to-front"],
+  [data-testid="menu-item.bring-forward"],
+  [data-testid="menu-item.send-backward"],
+  [data-testid="menu-item.send-to-back"],
+  [data-testid="menu-item.modify"],
+  [data-testid="menu-item.conversions"],
+  .tlui-helper-buttons,
   [data-testid="main.page-menu"],
   [data-testid="main.menu"],
-  [data-testid="tools.laser"],
+  [data-testid="tools.more.laser"],
   [data-testid="tools.asset"],
-  .tlui-menu-zone__controls > :nth-child(1),
-  .tlui-menu-zone__controls > :nth-child(2) {
-    display: none;
+  [data-testid="page-menu.button"],
+  [data-testid="menu-item.zoom-to-100"],
+  .tlui-menu-zone {
+    display: none !important;
   }
 
   .tl-collaborator__cursor {
     height: auto !important;
     width: auto !important;
-    transition: transform 0.25s ease-out !important;
   }
+
+  .tlui-layout__mobile .tlui-button__tool {
+    height: 30px !important;
+    width: 20px !important;
+  }
+
+  .tlui-toolbar__inner {
+    flex-direction: column-reverse !important;
+  }
+
+  .tlui-toolbar__tools {
+    flex-direction: column !important;
+  }
+
+  .tlui-toolbar {
+    align-items: end !important;
+  }
+
+  .tlui-layout__bottom {
+    grid-row: auto / auto !important;
+    position: absolute !important;
+    right: 10px !important;
+  }
+
+  [data-side="bottom"][data-align="end"][data-state="open"][role="dialog"] {
+    right: 3.5rem !important;
+    bottom: 9.5rem !important;
+  }
+
+  [id*="shape:poll-result"] {
+    background-color: white !important;
+  }
+
+  ${({ presentationHeight }) => {
+    const minRange = { height: 345, top: 14 };
+    const maxRange = { height: 1200, top: 384 };
+
+    const interpolateTop = (height) => {
+      if (height <= minRange.height) return `${minRange.top}px`;
+      if (height >= maxRange.height) return `${maxRange.top}px`;
+
+      const slope = (maxRange.top - minRange.top) / (maxRange.height - minRange.height);
+      const interpolatedTop = minRange.top + slope * (height - minRange.height);
+      return `${interpolatedTop}px`;
+    };
+
+    const topValue = interpolateTop(presentationHeight);
+
+    let additionalStyles = '';
+    if (presentationHeight <= 375) {
+      additionalStyles += `
+        .tlui-layout__mobile .tlui-button__tool > .tlui-icon {
+          height: 10px !important;
+          width: 10px !important;
+        }
+
+        .tlui-toolbar__tools {
+          flex-direction: row !important;
+        }
+
+        .tlui-toolbar__inner {
+          flex-direction: row-reverse !important;
+        }
+
+        .tlui-layout__bottom {
+          grid-row: auto / auto !important;
+          position: relative !important;
+          top: 2px !important;
+        }
+
+        .tlui-toolbar__tools.tlui-toolbar__tools__mobile.fade-in {
+          height: 30px !important;
+        }
+
+        [data-side="top"][role="dialog"]:has(.tlui-style-panel) {
+          left: 10rem !important;
+        }
+      `;
+    }
+
+    return `.tlui-layout__bottom { top: ${topValue} !important; }${additionalStyles}`;
+  }}
 `;
 
 const EditableWBWrapper = styled.div`

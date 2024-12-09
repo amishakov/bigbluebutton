@@ -8,6 +8,7 @@ on:
     paths-ignore:
       - "docs/**"
       - "**/*.md"
+      - "bigbluebutton-html5/public/locales/*.json"
   pull_request:
     types: [opened, synchronize, reopened]
     paths-ignore:
@@ -63,19 +64,19 @@ jobs:
           - package: bbb-fsesl-akka
             cache-files-list: akka-bbb-fsesl bbb-common-message
           - package: bbb-html5
-            build-list: bbb-html5-nodejs bbb-html5
+            build-list: bbb-html5
             cache-files-list: bigbluebutton-html5
           - package: bbb-freeswitch
             build-list: bbb-freeswitch-core bbb-freeswitch-sounds
             cache-files-list: freeswitch.placeholder.sh
-            cache-urls-list: http://bigbluebutton.org/downloads/sounds.tar.gz
+            cache-urls-list: https://ubuntu.bigbluebutton.org/sounds.tar.gz
           - package: bbb-webrtc
             build-list: bbb-webrtc-sfu bbb-webrtc-recorder
             cache-files-list: bbb-webrtc-sfu.placeholder.sh bbb-webrtc-recorder.placeholder.sh
           - package: others
             build-list: bbb-mkclean bbb-pads bbb-libreoffice-docker bbb-transcription-controller bigbluebutton bbb-livekit
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Merge branches
         uses: ./.github/actions/merge-branches
       - name: Set cache-key vars
@@ -90,7 +91,7 @@ jobs:
       - name: Handle cache
         if: matrix.cache-files-list != ''
         id: cache-action
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: artifacts.tar
           key: ${{ runner.os }}-${{ matrix.package }}-${{ env.BIGBLUEBUTTON_RELEASE }}-commits-${{ env.CACHE_KEY_FILES }}-urls-${{ env.CACHE_KEY_URLS }}
@@ -102,7 +103,7 @@ jobs:
           echo "${{ matrix.build-list || matrix.package }}" | xargs -n 1 ./build/setup.sh
           tar cvf artifacts.tar artifacts/
       - name: Archive packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts_${{ matrix.package }}.tar
           path: artifacts.tar
@@ -112,74 +113,77 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 8/8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    env:
+      shard: ${{ matrix.shard }}/8
+      MATRIX_SHARD_UNDERSCORED: ${{ matrix.shard }}_8
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Merge branches
         uses: ./.github/actions/merge-branches
       - run: ./build/get_external_dependencies.sh
       - name: Download artifacts_bbb-apps-akka
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-apps-akka.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-config
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-config.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-export-annotations
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-export-annotations.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-learning-dashboard
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-learning-dashboard.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-playback-record
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-playback-record.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-graphql-server
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-graphql-server.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-etherpad
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-etherpad.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-freeswitch
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-freeswitch.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-webrtc
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-webrtc.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-web
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-web.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-fsesl-akka
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-fsesl-akka.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts_bbb-html5
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_bbb-html5.tar
       - run: tar xf artifacts.tar
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: artifacts_others.tar
       - run: tar xf artifacts.tar
@@ -251,17 +255,105 @@ jobs:
         run: |
           sudo sh -c '
           apt --purge -y remove apache2-bin
+          apt-mark hold firefox #hold ff once bbb-install frequently stuck at `Installing the firefox snap`
+
+          #bbb-webrtc-sfu: removes the special scheduling policies
+          mkdir -p /etc/systemd/system/bbb-webrtc-sfu.service.d/
+          tee /etc/systemd/system/bbb-webrtc-sfu.service.d/override.conf > /dev/null <<EOL
+          [Service]
+          CPUSchedulingPolicy=other
+          Nice=19
+          EOL
+          systemctl daemon-reload
           '
       - name: Install BBB
-        timeout-minutes: 25
+        env:
+          NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/bbb-dev/bbb-dev-ca.crt
+          ACTIONS_RUNNER_DEBUG: true
         run: |
-          sudo -i <<EOF
+          sudo -i <<'EOF'
           set -e
-          cd /root/ && wget -nv https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh -O bbb-install.sh
-          cat bbb-install.sh | sed "s|> /etc/apt/sources.list.d/bigbluebutton.list||g" | bash -s -- -v jammy-30-dev -s bbb-ci.test -j -d /certs/
+          cd /root/
+          wget -nv https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh -O bbb-install.sh
+          sed -i "s|> /etc/apt/sources.list.d/bigbluebutton.list||g" bbb-install.sh
+          chmod +x bbb-install.sh
+
+          COMMAND="./bbb-install.sh -v jammy-30-dev -s bbb-ci.test -j -d /certs/"
+          TIMEOUT=1500  # 25 minutes
+          MAX_RETRIES=3
+          RETRY_INTERVAL=60
+          RETRY_COUNT=0
+          SUCCESS=0
+
+          while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES to install BBB..."
+
+            # Run the command with timeout and handle its exit code
+            # Capture both stdout and stderr
+            COMMAND_EXIT_CODE=0
+            timeout $TIMEOUT $COMMAND || COMMAND_EXIT_CODE=$?
+
+            if [[ $COMMAND_EXIT_CODE -eq 0 ]]; then
+              SUCCESS=1
+              break
+            elif [[ $COMMAND_EXIT_CODE -eq 124 ]]; then
+              echo "Installation timed out after ${TIMEOUT} seconds. Retrying..."
+            else
+              echo "Installation failed with exit code $COMMAND_EXIT_CODE"
+              echo "Retrying installation within $RETRY_INTERVAL seconds..."
+              sleep $RETRY_INTERVAL
+            fi
+
+            echo "Check if there is some process still locking:1"
+            ps aux | grep -E 'dpkg|apt'
+
+            echo "Stop any ongoing processes related to apt-get or dpkg that might be stuck"
+            # Use -q to suppress "no process found" messages
+            # Kill any apt-get or dpkg processes that might be hanging
+            killall -9 -q apt-get || true
+            killall -9 -q dpkg || true
+
+            echo "Remove the lock files that may have been left behind"
+            # Group lock file removal for better readability
+            rm -f /var/lib/dpkg/lock-frontend
+            rm -f /var/lib/dpkg/lock
+            rm -f /var/cache/apt/archives/lock
+            rm -f /var/cache/debconf/config.dat
+
+            echo "Reconfigure the package manager"
+            dpkg --configure -a
+
+            echo "Clean up any partially installed packages"
+            apt-get clean
+            apt-get autoremove
+
+            echo "Check if there is some process still locking:2"
+            ps aux | grep -E 'dpkg|apt'
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+          done
+
+          if [[ $SUCCESS -eq 0 ]]; then
+            echo "All attempts to install BBB failed."
+            exit 1
+          fi
+
           bbb-conf --salt bbbci
-          echo "NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/bbb-dev/bbb-dev-ca.crt" >> /usr/share/meteor/bundle/bbb-html5-with-roles.conf
           sed -i "s/\"minify\": true,/\"minify\": false,/" /usr/share/etherpad-lite/settings.json
+          sudo yq e -i '.log_level = "TRACE"' /usr/share/bbb-graphql-middleware/config.yml
+          cat > /etc/bigbluebutton/bbb-conf/apply-config.sh << HERE
+          #!/bin/bash
+
+          # Pull in the helper functions for configuring BigBlueButton
+          source /etc/bigbluebutton/bbb-conf/apply-lib.sh
+
+          # Available configuration options
+
+          enableHTML5ClientLog
+          #enableUFWRules
+
+          HERE
+          chmod +x /etc/bigbluebutton/bbb-conf/apply-config.sh
           bbb-conf --restart
           EOF
       - name: List systemctl services
@@ -272,6 +364,7 @@ jobs:
           EOF
       - name: Install test dependencies
         working-directory: ./bigbluebutton-tests/playwright
+        timeout-minutes: 25
         run: |
           sh -c '
           npm ci
@@ -279,13 +372,13 @@ jobs:
           npx playwright install
           '
       - name: Run tests
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 25
-          max_attempts: 3
+          max_attempts: 2
           command: |
             cd ./bigbluebutton-tests/playwright
-            npm run test-chromium-ci -- --shard ${{ matrix.shard }}
+            npm run test-chromium-ci -- --shard ${{ env.shard }}
         env:
           NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/bbb-dev/bbb-dev-ca.crt
           ACTIONS_RUNNER_DEBUG: true
@@ -305,13 +398,13 @@ jobs:
         run: |
           sh -c '
           find $HOME/.cache/ms-playwright -name libnssckbi.so -exec rm {} \; -exec ln -s /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so {} \;
-          npm run test-firefox-ci -- --shard ${{ matrix.shard }}
+          npm run test-firefox-ci -- --shard ${{ env.shard }}
           '
-      - if: always() && github.event_name == 'pull_request'
+      - if: always()
         name: Upload blob report to GitHub Actions Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: all-blob-reports
+          name: blob-report-${{ matrix.shard }}
           path: bigbluebutton-tests/playwright/blob-report
       - if: failure()
         name: Prepare artifacts (configs and logs)
@@ -337,45 +430,33 @@ jobs:
           chmod a+r -R /home/runner/work/bigbluebutton/bigbluebutton/configs
           bbb-conf --zip
           ls -t /root/*.tar.gz | head -1 | xargs -I '{}' cp '{}' /home/runner/work/bigbluebutton/bigbluebutton/bbb-logs.tar.gz
-          echo "MATRIX_SHARD=$(echo ${{ matrix.shard }} | tr '/' '_')" >> $GITHUB_ENV
           EOF
       - if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: bbb-configs-${{ env.MATRIX_SHARD }}
+          name: bbb-configs-${{ env.MATRIX_SHARD_UNDERSCORED }}
           path: configs
       - if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: bbb-logs-${{ env.MATRIX_SHARD }}
+          name: bbb-logs-${{ env.MATRIX_SHARD_UNDERSCORED }}
           path: ./bbb-logs.tar.gz
   upload-report:
-    if: always()
+    if: always() && !contains(github.event.head_commit.message, 'Merge pull request')
     needs: install-and-run-tests
     runs-on: ubuntu-latest
+    env:
+      hasReportData: ${{ needs.install-and-run-tests.result == 'success' || needs.install-and-run-tests.result == 'failure' }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: Install dependencies
-        working-directory: ./bigbluebutton-tests/playwright
-        run: npm ci
-      - name: Download all blob reports from GitHub Actions Artifacts
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - name: Upload blob report
+        if: ${{ env.hasReportData }}
+        uses: ./.github/actions/upload-blob-report
+      - name: Remove unnecessary artifact
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: all-blob-reports
-          path: bigbluebutton-tests/playwright/all-blob-reports
-      - name: Merge into HTML Report
-        working-directory: ./bigbluebutton-tests/playwright
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
-      - name: Upload HTML tests report
-        uses: actions/upload-artifact@v3
-        with:
-          name: tests-report
-          path: |
-            bigbluebutton-tests/playwright/playwright-report
-            bigbluebutton-tests/playwright/test-results
+          failOnError: false
       - name: Write PR data for auto-comment
         if: github.event_name == 'pull_request'
         working-directory: ./
@@ -385,7 +466,7 @@ jobs:
           echo ${{ github.run_id }} > ./pr-comment-data/workflow_id
       - name: Upload PR data for auto-comment
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pr-comment-data
           path: pr-comment-data

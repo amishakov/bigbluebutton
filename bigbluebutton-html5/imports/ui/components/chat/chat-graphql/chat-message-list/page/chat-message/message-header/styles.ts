@@ -2,18 +2,19 @@ import styled from 'styled-components';
 
 import {
   colorHeading,
-  palettePlaceholderText,
   colorGrayLight,
+  colorGrayDark,
 } from '/imports/ui/stylesheets/styled-components/palette';
-import { lineHeightComputed } from '/imports/ui/stylesheets/styled-components/typography';
+import { fontSizeSmaller, lineHeightComputed } from '/imports/ui/stylesheets/styled-components/typography';
 
 interface ChatUserNameProps {
-  isOnline: boolean;
+  currentlyInMeeting: boolean;
 }
 
 export const HeaderContent = styled.div`
   display: flex;
   flex-flow: row;
+  align-items: center;
   width: 100%;
 `;
 
@@ -23,17 +24,20 @@ export const ChatUserName = styled.div<ChatUserNameProps>`
   font-weight: 600;
   position: relative;
 
+  margin-right: calc(${lineHeightComputed} / 2);
+
   min-width: 0;
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
 
-  ${({ isOnline }) => isOnline && `
+  ${({ currentlyInMeeting }) => currentlyInMeeting && `
     color: ${colorHeading};
   `}
 
-  ${({ isOnline }) => !isOnline && `
+  ${({ currentlyInMeeting }) => !currentlyInMeeting && `
     text-transform: capitalize;
     font-style: italic;
 
@@ -54,20 +58,19 @@ export const ChatUserOffline = styled.span`
   font-weight: 100;
   text-transform: lowercase;
   font-style: italic;
-  font-size: 90%;
+  font-size: 85%;
   line-height: 1;
   user-select: none;
-  margin: 0 0 0 calc(${lineHeightComputed} / 2);
+  margin-right: calc(${lineHeightComputed} / 2);
 `;
 
 export const ChatTime = styled.time`
   flex-shrink: 0;
   flex-grow: 0;
-  flex-basis: 3.5rem;
-  color: ${palettePlaceholderText};
+  flex-basis: max-content;
+  color: ${colorGrayDark};
   text-transform: uppercase;
   font-size: 75%;
-  margin: 0 0 0 calc(${lineHeightComputed} / 2);
   [dir='rtl'] & {
     margin: 0 calc(${lineHeightComputed} / 2) 0 0;
   }
@@ -83,10 +86,32 @@ export const ChatHeaderText = styled.div`
   width: 100%;
 `;
 
+export const EditLabel = styled.span`
+  color: ${colorGrayLight};
+  font-size: ${fontSizeSmaller};
+  display: flex;
+  align-items: center;
+  gap: calc(${lineHeightComputed} / 4);
+
+  [dir='ltr'] & {
+    margin-right: calc(${lineHeightComputed} / 2);
+  }
+
+  [dir='rtl'] & {
+    margin-left: calc(${lineHeightComputed} / 2);
+  }
+`;
+
+export const Center = styled.div`
+  flex-grow: 1;
+`;
+
 export default {
   HeaderContent,
   ChatTime,
   ChatUserOffline,
   ChatUserName,
   ChatHeaderText,
+  EditLabel,
+  Center,
 };

@@ -12,16 +12,16 @@ class Options extends MultiUsers {
 
   async openedAboutModal() {
     await openAboutModal(this.modPage);
-    await this.modPage.hasElement(e.closeModal);
+    await this.modPage.hasElement(e.closeModal, 'should display the close modal button for the about modal');
     await this.modPage.waitAndClick(e.closeModal);
   }
 
-  async openHelp(context) {
+  async openHelp() {
     await this.modPage.waitAndClick(e.optionsButton);
-    const newPage = await this.modPage.handleNewTab(e.helpButton, context);
-    await expect(newPage).toHaveTitle(/Tutorials/);
+    const newPage = await this.modPage.handleNewTab(e.helpButton, this.modPage.context);
+    await expect(newPage, 'should the help page to display the title Tutorials').toHaveTitle(/Tutorials/);
     await newPage.close();
-    await this.modPage.hasElement(e.whiteboard);
+    await this.modPage.hasElement(e.whiteboard, 'should the whiteboard be open on the main meeting');
   }
 
   async localesTest() {
@@ -50,48 +50,56 @@ class Options extends MultiUsers {
       const langDropdown = await this.modPage.page.$(e.languageSelector);
       await langDropdown.selectOption({ value: locale });
       await this.modPage.waitAndClick(e.modalConfirmButton);
-      await this.modPage.waitForSelector(e.toastContainer);
 
       for (const selector in currentValuesBySelector) {
-        await this.modPage.hasText(selector, currentValuesBySelector[selector]);
+        await this.modPage.hasText(selector, currentValuesBySelector[selector], 'should the elements to be translated to the specific language');
       }
     }
   }
 
   async darkMode() {
+    await this.modPage.hasElement(e.whiteboard, 'should the whiteboard be display');
+    await this.modPage.waitAndClick(e.closePopup);
     await openSettings(this.modPage);
 
     await this.modPage.waitAndClickElement(e.darkModeToggleBtn);
     await this.modPage.waitAndClick(e.modalConfirmButton);
 
     const modPageLocator = this.modPage.getLocator('body');
+    await this.modPage.setHeightWidthViewPortSize();
     const screenshotOptions = {
       maxDiffPixels: 1000,
     };
 
     await this.modPage.closeAllToastNotifications();
-
-    await expect(modPageLocator).toHaveScreenshot('moderator-page-dark-mode.png', screenshotOptions);
+    await expect(modPageLocator, 'should the meeting be in dark mode').toHaveScreenshot('moderator-page-dark-mode.png', screenshotOptions);
     
     await openSettings(this.modPage);
     await this.modPage.waitAndClickElement(e.darkModeToggleBtn);
     await this.modPage.waitAndClick(e.modalConfirmButton);
+
+    await this.modPage.waitAndClick(e.chatOptions);
+    await this.modPage.waitAndClick(e.restoreWelcomeMessages);
   }
 
   async fontSizeTest() {
+    await this.modPage.hasElement(e.whiteboard, 'should the whiteboard be display');
+    await this.modPage.waitAndClick(e.closePopup);
     // Increasing font size
     await openSettings(this.modPage);
     await this.modPage.waitAndClick(e.increaseFontSize);
     await this.modPage.waitAndClick(e.modalConfirmButton);
 
     const modPageLocator = this.modPage.getLocator('body');
+
+    await this.modPage.setHeightWidthViewPortSize();
     const screenshotOptions = {
       maxDiffPixels: 1000,
     };
 
     await this.modPage.closeAllToastNotifications();
 
-    await expect(modPageLocator).toHaveScreenshot('moderator-page-font-size.png', screenshotOptions);
+    await expect(modPageLocator, 'should the meeting display the font size increased').toHaveScreenshot('moderator-page-font-size.png', screenshotOptions);
   }
 }
 

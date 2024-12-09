@@ -22,7 +22,6 @@ const FloatingWindowPluginStateContainer = ((
   ] = useState<PluginSdk.FloatingWindowInterface[]>([]);
 
   const {
-    pluginsExtensibleAreasAggregatedState,
     setPluginsExtensibleAreasAggregatedState,
   } = useContext(PluginsContext);
 
@@ -36,17 +35,17 @@ const FloatingWindowPluginStateContainer = ((
       ...Object.values(extensibleAreaMap)
         .map((extensibleArea: ExtensibleArea) => extensibleArea.floatingWindows),
     );
-    setPluginsExtensibleAreasAggregatedState(
+    setPluginsExtensibleAreasAggregatedState((previousState) => (
       {
-        ...pluginsExtensibleAreasAggregatedState,
+        ...previousState,
         floatingWindows: aggregatedFloatingWindows,
-      },
-    );
+      }));
   }, [floatingWindows]);
 
   pluginApi.setFloatingWindows = (items: PluginSdk.FloatingWindowInterface[]) => {
     const itemsWithId = items.map(generateItemWithId) as PluginSdk.FloatingWindowInterface[];
-    return setFloatingWindows(itemsWithId);
+    setFloatingWindows(itemsWithId);
+    return itemsWithId.map((i) => i.id);
   };
   return null;
 }) as ExtensibleAreaComponentManager;

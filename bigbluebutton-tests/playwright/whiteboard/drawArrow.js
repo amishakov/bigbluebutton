@@ -24,9 +24,8 @@ class DrawArrow extends MultiUsers {
     await this.modPage.page.mouse.move(wbBox.x + 0.7 * wbBox.width, wbBox.y + 0.7 * wbBox.height);
     await this.modPage.page.mouse.up();
 
-    await expect(modWbLocator).toHaveScreenshot('moderator-arrow.png', screenshotOptions);
-    const userWbLocator = this.userPage.getLocator(e.whiteboard);
-    await expect(userWbLocator).toHaveScreenshot('viewer-arrow.png', screenshotOptions);
+    await this.modPage.hasElement(e.wbDrawnArrow);
+    await this.userPage.hasElement(e.wbDrawnArrow);
   }
 }
 

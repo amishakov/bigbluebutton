@@ -52,6 +52,15 @@ object_relationships:
         remote_table:
           name: v_layout
           schema: public
+  - name: learningDashboard
+    using:
+      manual_configuration:
+        column_mapping:
+          meetingId: meetingId
+        insertion_order: null
+        remote_table:
+          name: v_meeting_learningDashboard
+          schema: public
   - name: lockSettings
     using:
       manual_configuration:
@@ -125,6 +134,15 @@ array_relationships:
         remote_table:
           name: v_meeting_group
           schema: public
+  - name: metadata
+    using:
+      manual_configuration:
+        column_mapping:
+          meetingId: meetingId
+        insertion_order: null
+        remote_table:
+          name: v_meeting_metadata
+          schema: public
   - name: polls
     using:
       manual_configuration:
@@ -138,14 +156,30 @@ select_permissions:
   - role: bbb_client
     permission:
       columns:
+        - bannerColor
+        - bannerText
+        - createdAt
         - createdTime
+        - customLogoUrl
+        - customDarkLogoUrl
         - disabledFeatures
         - durationInSeconds
+        - endWhenNoModerator
+        - endWhenNoModeratorDelayInMinutes
+        - ended
+        - endedAt
+        - endedBy
+        - endedByUserName
+        - endedReasonCode
         - extId
-        - html5InstanceId
         - isBreakout
+        - loginUrl
+        - logoutUrl
         - maxPinnedCameras
         - meetingCameraCap
+        - cameraBridge
+        - screenShareBridge
+        - audioBridge
         - meetingId
         - name
         - notifyRecordingIsOn
@@ -154,9 +188,19 @@ select_permissions:
       filter:
         meetingId:
           _eq: X-Hasura-MeetingId
-  - role: pre_join_bbb_client
+  - role: bbb_client_not_in_meeting
     permission:
       columns:
+        - bannerColor
+        - bannerText
+        - customLogoUrl
+        - customDarkLogoUrl
+        - ended
+        - endedAt
+        - endedBy
+        - endedByUserName
+        - endedReasonCode
+        - isBreakout
         - logoutUrl
         - meetingId
         - name

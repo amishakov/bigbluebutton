@@ -19,10 +19,9 @@ const NavBarPluginStateContainer = ((
   const [
     navBarItems,
     setNavBarItems,
-  ] = useState<PluginSdk.NavBarItem[]>([]);
+  ] = useState<PluginSdk.NavBarInterface[]>([]);
 
   const {
-    pluginsExtensibleAreasAggregatedState,
     setPluginsExtensibleAreasAggregatedState,
   } = useContext(PluginsContext);
 
@@ -31,22 +30,22 @@ const NavBarPluginStateContainer = ((
     extensibleAreaMap[uuid].navBarItems = navBarItems;
 
     // Update context with computed aggregated list of all plugin provided toolbar items
-    const aggregatedNavBarItems = ([] as PluginSdk.NavBarItem[]).concat(
+    const aggregatedNavBarItems = ([] as PluginSdk.NavBarInterface[]).concat(
       ...Object.values(extensibleAreaMap)
         .map((extensibleArea: ExtensibleArea) => extensibleArea.navBarItems),
     );
 
-    setPluginsExtensibleAreasAggregatedState(
+    setPluginsExtensibleAreasAggregatedState((previousState) => (
       {
-        ...pluginsExtensibleAreasAggregatedState,
+        ...previousState,
         navBarItems: aggregatedNavBarItems,
-      },
-    );
+      }));
   }, [navBarItems]);
 
-  pluginApi.setNavBarItems = (items: PluginSdk.NavBarItem[]) => {
-    const itemsWithId = items.map(generateItemWithId) as PluginSdk.NavBarItem[];
-    return setNavBarItems(itemsWithId);
+  pluginApi.setNavBarItems = (items: PluginSdk.NavBarInterface[]) => {
+    const itemsWithId = items.map(generateItemWithId) as PluginSdk.NavBarInterface[];
+    setNavBarItems(itemsWithId);
+    return itemsWithId.map((i) => i.id);
   };
   return null;
 }) as ExtensibleAreaComponentManager;

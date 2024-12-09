@@ -26,11 +26,12 @@ case class PresentationPage(
     current:     Boolean             = false,
     xOffset:     Double              = 0,
     yOffset:     Double              = 0,
-    widthRatio:  Double              = 100D,
-    heightRatio: Double              = 100D,
+    widthRatio:  Double              = 100.0,
+    heightRatio: Double              = 100.0,
     width:       Double              = 1440D,
     height:      Double              = 1080D,
-    converted:   Boolean             = false
+    converted:   Boolean             = false,
+    infiniteWhiteboard: Boolean          = false,
 )
 
 object PresentationInPod {
@@ -171,13 +172,14 @@ case class PresentationPod(id: String, currentPresenter: String,
   def resizePage(presentationId: String, pageId: String,
                  xOffset: Double, yOffset: Double, widthRatio: Double,
                  heightRatio: Double, slideNumber: Int): Option[(PresentationPod, PresentationPage)] = {
-    // Force coordinate that are out-of-bounds inside valid values
-    // 0.25D is 400% zoom
-    // 100D-checkedWidth is the maximum the page can be moved over
-    val checkedWidth = Math.min(widthRatio, 100D) //if (widthRatio <= 100D) widthRatio else 100D
-    val checkedHeight = Math.min(heightRatio, 100D)
-    val checkedXOffset = Math.min(xOffset, 0D)
-    val checkedYOffset = Math.min(yOffset, 0D)
+    val minZoom = 25.0
+    val maxZoom = 400.0
+
+    val checkedWidth = Math.max(minZoom, Math.min(widthRatio, maxZoom))
+    val checkedHeight = Math.max(minZoom, Math.min(heightRatio, maxZoom))
+
+    val checkedXOffset = xOffset
+    val checkedYOffset = yOffset
 
     for {
       pres <- presentations.get(presentationId)
@@ -190,7 +192,6 @@ case class PresentationPod(id: String, currentPresenter: String,
       (addPresentation(newPres), nPage)
     }
   }
-
 }
 
 case class PresentationPodManager(presentationPods: collection.immutable.Map[String, PresentationPod]) {

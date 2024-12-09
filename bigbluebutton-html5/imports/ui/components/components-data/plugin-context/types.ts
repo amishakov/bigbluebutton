@@ -1,6 +1,5 @@
-import { DocumentNode } from 'graphql';
+import { DomElementManipulationIdentifiers } from '../../plugins-engine/dom-element-manipulation/types';
 import { ExtensibleArea } from '/imports/ui/components/plugins-engine/extensible-areas/types';
-import React from 'react';
 
 export interface UserListGraphqlVariables {
     offset: number;
@@ -16,18 +15,9 @@ export type ChatMessagesVariables = {
     limit: number;
 }
 
-export interface ChatMessagesGraphqlVariablesAndQuery {
-    query: DocumentNode;
-    variables: ChatMessagesVariables;
-}
-
 export interface PluginsContextType {
     pluginsExtensibleAreasAggregatedState: ExtensibleArea;
     setPluginsExtensibleAreasAggregatedState: React.Dispatch<React.SetStateAction<ExtensibleArea>>;
-    userListGraphqlVariables: UserListGraphqlVariables;
-    setUserListGraphqlVariables: React.Dispatch<
-        React.SetStateAction<UserListGraphqlVariables>>;
-    chatMessagesGraphqlVariablesAndQuery: ChatMessagesGraphqlVariablesAndQuery;
-    setChatMessagesGraphqlVariablesAndQuery: React.Dispatch<
-        React.SetStateAction<ChatMessagesGraphqlVariablesAndQuery>>;
+    domElementManipulationIdentifiers: DomElementManipulationIdentifiers;
+    setDomElementManipulationIdentifiers: React.Dispatch<React.SetStateAction<DomElementManipulationIdentifiers>>;
 }

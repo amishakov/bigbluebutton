@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 import { gql } from '@apollo/client';
-import { User } from '/imports/ui/Types/user';
 import { Meeting } from '/imports/ui/Types/meeting';
 import { Message } from '/imports/ui/Types/message';
 
@@ -10,23 +9,23 @@ export type getChatMessageHistory = {
   user_welcomeMsgs: Array<{welcomeMsg: string, welcomeMsgForModerators: string | null}>;
 };
 
-export type getPermissions = {
-  user_current: Array<User>;
-  meeting: Array<{ isBreakout: boolean }>;
-  user_welcomeMsgs: Array<{ welcomeMsg: string; welcomeMsgForModerators: string | null }>;
-};
-
 export const GET_CHAT_MESSAGE_HISTORY = gql`
 query getChatMessageHistory {
   chat_message_public(order_by: {createdAt: asc}) {
     message
     messageId
     messageType
+    messageMetadata
+    senderName
+    chatEmphasizedText
     createdAt
     user {
       userId
       name
       role
+    }
+    deletedBy {
+      name
     }
   }
   meeting {
@@ -37,20 +36,4 @@ query getChatMessageHistory {
     welcomeMsgForModerators
   }
 }
-`;
-
-export const GET_PERMISSIONS = gql`
-  query getPermissions {
-    user_current {
-      isModerator
-    }
-    meeting {
-      isBreakout
-      name
-    }
-    user_welcomeMsgs {
-      welcomeMsg
-      welcomeMsgForModerators
-    }
-  }
 `;

@@ -1,50 +1,75 @@
 package main
 
 import (
+	"bbb-graphql-middleware/config"
+	"bbb-graphql-middleware/internal/common"
+	"bbb-graphql-middleware/internal/websrv"
+	"context"
+	"errors"
 	"fmt"
-	"github.com/iMDT/bbb-graphql-middleware/internal/msgpatch"
-	"github.com/iMDT/bbb-graphql-middleware/internal/websrv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"os"
-	"strconv"
+	"time"
 )
 
 func main() {
+	cfg := config.GetConfig()
+
 	// Configure logger
-	if logLevelFromEnvVar, err := log.ParseLevel(os.Getenv("BBB_GRAPHQL_MIDDLEWARE_LOG_LEVEL")); err == nil {
-		log.SetLevel(logLevelFromEnvVar)
+	if logLevelFromConfig, err := log.ParseLevel(cfg.LogLevel); err == nil {
+		log.SetLevel(logLevelFromConfig)
+		if logLevelFromConfig > log.InfoLevel {
+			log.SetReportCaller(true)
+		}
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
-
 	log.SetFormatter(&log.JSONFormatter{})
 	log := log.WithField("_routine", "main")
 
-	log.Infof("Logger level=%v", log.Logger.Level)
+	common.InitUniqueID()
+	log = log.WithField("graphql-middleware-uid", common.GetUniqueID())
 
-	//Clear cache from last exec
-	msgpatch.ClearAllCaches()
+	log.Infof("Logger level=%v", log.Logger.Level)
 
 	// Listen msgs from akka (for example to invalidate connection)
 	go websrv.StartRedisListener()
 
-	// Websocket listener
-	// set default port
-	var listenPort = 8378
-
-	// Check if the environment variable BBB_GRAPHQL_MIDDLEWARE_LISTEN_PORT exists
-	envListenPort := os.Getenv("BBB_GRAPHQL_MIDDLEWARE_LISTEN_PORT")
-	if envListenPort != "" {
-		envListenPortAsInt, err := strconv.Atoi(envListenPort)
-		if err == nil {
-			listenPort = envListenPortAsInt
-		}
+	if cfg.Server.JsonPatchDisabled {
+		log.Infof("Json Patch Disabled!")
 	}
 
-	http.HandleFunc("/", websrv.ConnectionHandler)
+	// Routine to check for idle connections and close them
+	go websrv.InvalidateIdleBrowserConnectionsRoutine()
 
-	log.Infof("listening on port %v", listenPort)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", listenPort), nil))
+	// Websocket listener
 
+	rateLimiter := common.NewCustomRateLimiter(cfg.Server.MaxConnectionsPerSecond)
+	http.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
+		defer cancel()
+
+		common.HttpConnectionGauge.Inc()
+		common.HttpConnectionCounter.Inc()
+		defer common.HttpConnectionGauge.Dec()
+
+		if err := rateLimiter.Wait(ctx); err != nil {
+			if !errors.Is(err, context.Canceled) {
+				http.Error(w, "Request cancelled or rate limit exceeded", http.StatusTooManyRequests)
+			}
+
+			return
+		}
+
+		websrv.ConnectionHandler(w, r)
+	})
+
+	http.HandleFunc("/graphql-reconnection", websrv.ReconnectionHandler)
+
+	// Add Prometheus metrics endpoint
+	http.Handle("/metrics", promhttp.Handler())
+
+	log.Infof("listening on %v:%v", cfg.Server.Host, cfg.Server.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%v:%v", cfg.Server.Host, cfg.Server.Port), nil))
 }

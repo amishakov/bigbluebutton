@@ -11,6 +11,15 @@ interface ActionBar {
     zIndex?: number
 }
 
+interface PresentationAreaContentActions {
+    type: string,
+    value: {
+        content: string,
+        open: boolean,
+        genericContentId?: string;
+    },
+}
+
 interface ResizableEdge {
     bottom: boolean;
     left: boolean;
@@ -48,6 +57,15 @@ interface CameraDock {
     isResizable?: boolean;
     resizableEdge?: ResizableEdge;
     tabOrder?: number;
+    presenterMaxWidth: number;
+    maxWidth: number;
+    maxHeight: number;
+    minHeight: number;
+    minWidth: number;
+    left: number;
+    top: number;
+    right: number;
+    zIndex: number;
 }
 
 export interface ExternalVideo {
@@ -63,8 +81,23 @@ export interface ExternalVideo {
     zIndex?: number;
     right?: number;
 }
+
+export interface GenericContentMainArea {
+    genericContentId?: string;
+    browserHeight?: number;
+    browserWidth?: number;
+    height: number;
+    width: number;
+    display?: boolean;
+    left?: number;
+    tabOrder?: number;
+    top?: number;
+    zIndex?: number;
+    right?: number;
+}
 interface NavBar {
     hasNavBar?: boolean;
+    hideTopRow: boolean;
     height: number;
     display?: boolean;
     left?: number;
@@ -76,6 +109,7 @@ interface NavBar {
 
 interface NotificationsBar {
     hasNotification: boolean;
+    hideNotificationToasts: boolean;
 }
 
 interface Size {
@@ -214,8 +248,9 @@ interface Input {
     bannerBar: BannerBar;
     browser: Browser;
     cameraDock: CameraDock
-    customParameters: NonNullable<unknown>;
-    externalVideo: ExternalVideo
+    userMetadata: NonNullable<unknown>;
+    externalVideo: ExternalVideo;
+    genericMainContent: GenericContentMainArea;
     navBar: NavBar;
     notificationsBar: NotificationsBar;
     presentation: Presentation;
@@ -228,20 +263,22 @@ interface Input {
 
 interface Output {
     actionBar: ActionBar;
-cameraDock: CameraDock;
-captions: Captions;
-dropZoneAreas: DropzoneAreas;
-externalVideo: ExternalVideo;
-mediaArea: Size;
-navBar: NavBar;
-presentation: Presentation;
-screenShare: ScreenShare;
-sharedNotes: SharedNotes;
-sidebarContent: SidebarContent;
-sidebarNavigation: SidebarNavigation;
+    cameraDock: CameraDock;
+    captions: Captions;
+    dropZoneAreas: DropzoneAreas;
+    externalVideo: ExternalVideo;
+    genericMainContent: GenericContentMainArea;
+    mediaArea: Size;
+    navBar: NavBar;
+    presentation: Presentation;
+    screenShare: ScreenShare;
+    sharedNotes: SharedNotes;
+    sidebarContent: SidebarContent;
+    sidebarNavigation: SidebarNavigation;
 }
 
 interface Layout {
+    presentationAreaContentActions: PresentationAreaContentActions[];
     deviceType: string;
     fontSize: number;
     fullscreen: Fullscreen;
@@ -252,4 +289,16 @@ interface Layout {
     output: Output;
 }
 
-export { Input, Layout, Output };
+interface ActionForDispatcher {
+  type: string;
+  value: object;
+}
+
+type DispatcherFunction = (action: ActionForDispatcher) => void;
+
+export {
+  Input,
+  Layout,
+  Output,
+  DispatcherFunction,
+};

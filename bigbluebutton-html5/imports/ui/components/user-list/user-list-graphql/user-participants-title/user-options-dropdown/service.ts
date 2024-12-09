@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import UserListService, { getUserNamesLink } from '/imports/ui/components/user-list/service';
-import Auth from '/imports/ui/services/auth';
-import logger from '/imports/startup/client/logger';
-import Settings from '/imports/ui/services/settings';
+import { getUserNamesLink } from '/imports/ui/components/user-list/service';
+import { getSettingsSingletonInstance } from '/imports/ui/services/settings';
 import LearningDashboardService from '/imports/ui/components/learning-dashboard/service';
 import { defineMessages, IntlShape } from 'react-intl';
+import { User } from '/imports/ui/Types/user';
 
 const intlMessages = defineMessages({
   savedNamesListTitle: {
@@ -21,42 +20,8 @@ const intlMessages = defineMessages({
   },
 });
 
-const meetingMuteDisabledLog = () => logger.info(
-  {
-    logCode: 'useroptions_unmute_all',
-    extraInfo: { logType: 'moderator_action' },
-  },
-  'moderator disabled meeting mute',
-);
-
-export const toggleMuteAllUsers = (isMeetingMuteOnStart: boolean) => {
-  UserListService.muteAllUsers(Auth.userID);
-  if (isMeetingMuteOnStart) {
-    return meetingMuteDisabledLog();
-  }
-  return logger.info(
-    {
-      logCode: 'useroptions_mute_all',
-      extraInfo: { logType: 'moderator_action' },
-    },
-    'moderator enabled meeting mute, all users muted',
-  );
-};
-export const toggleMuteAllUsersExceptPresenter = (isMeetingMuteOnStart: boolean) => {
-  UserListService.muteAllExceptPresenter(Auth.userID);
-  if (isMeetingMuteOnStart) {
-    return meetingMuteDisabledLog();
-  }
-  return logger.info(
-    {
-      logCode: 'useroptions_mute_all_except_presenter',
-      extraInfo: { logType: 'moderator_action' },
-    },
-    'moderator enabled meeting mute, all users muted except presenter',
-  );
-};
-
-export const onSaveUserNames = (intl: IntlShape, meetingName: string) => {
+export const onSaveUserNames = (intl: IntlShape, meetingName: string, users: [User]) => {
+  const Settings = getSettingsSingletonInstance();
   // @ts-ignore - temporary while settings are still in .js
   const lang = Settings.application.locale;
   const date = new Date();
@@ -71,7 +36,12 @@ export const onSaveUserNames = (intl: IntlShape, meetingName: string) => {
     }),
     intl.formatMessage(intlMessages.sortedFirstNameHeading),
     intl.formatMessage(intlMessages.sortedLastNameHeading),
+    users,
+    meetingName,
   ).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
 };
 
-export const openLearningDashboardUrl = (lang: string) => LearningDashboardService.openLearningDashboardUrl(lang);
+export const openLearningDashboardUrl = (
+  lang: string,
+  token?: string,
+) => LearningDashboardService.openLearningDashboardUrl(lang, token);

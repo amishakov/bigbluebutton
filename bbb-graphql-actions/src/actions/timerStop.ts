@@ -3,6 +3,7 @@ import {throwErrorIfNotModerator} from "../imports/validation";
 
 export default function buildRedisMessage(sessionVariables: Record<string, unknown>, input: Record<string, unknown>): RedisMessage {
   throwErrorIfNotModerator(sessionVariables);
+
   const eventName = `StopTimerReqMsg`;
 
   const routing = {
@@ -16,11 +17,7 @@ export default function buildRedisMessage(sessionVariables: Record<string, unkno
     userId: routing.userId
   };
 
-  const body = {
-    accumulated: input.accumulated
-  };
-
-  //TODO calculate accumulated on the backend
+  const body = {};
 
   return { eventName, routing, header, body };
 }

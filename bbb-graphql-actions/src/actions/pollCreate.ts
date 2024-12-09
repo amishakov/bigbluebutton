@@ -1,8 +1,20 @@
 import { RedisMessage } from '../types';
-import {throwErrorIfNotPresenter} from "../imports/validation";
+import {throwErrorIfInvalidInput, throwErrorIfNotPresenter} from "../imports/validation";
+import {ValidationError} from "../types/ValidationError";
 
 export default function buildRedisMessage(sessionVariables: Record<string, unknown>, input: Record<string, unknown>): RedisMessage {
   throwErrorIfNotPresenter(sessionVariables);
+  throwErrorIfInvalidInput(input,
+      [
+        {name: 'pollId', type: 'string', required: true},
+        {name: 'pollType', type: 'string', required: true},
+        {name: 'secretPoll', type: 'boolean', required: true},
+        {name: 'question', type: 'string', required: true},
+        {name: 'isMultipleResponse', type: 'boolean', required: true},
+        {name: 'answers', type: 'stringArray', required: false},
+      ]
+  )
+
   const eventName = input.pollType === 'CUSTOM' ? `StartCustomPollReqMsg` : `StartPollReqMsg`
 
   const routing = {
@@ -26,7 +38,13 @@ export default function buildRedisMessage(sessionVariables: Record<string, unkno
   };
 
   if (input.pollType === 'CUSTOM') {
-    //TODO Validate answers as it is required for custom and not required in Hasura
+    if(!input.hasOwnProperty('answers')) {
+      throw new ValidationError('Field `answers` is required for Custom polls.', 400);
+    }
+
+    if(!Array.isArray(input.answers) || input.answers.length < 2) {
+      throw new ValidationError('Field `answers` should contain at least two answers.', 400);
+    }
 
     // @ts-ignore
     body.answers = input.answers;

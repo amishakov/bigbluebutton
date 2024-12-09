@@ -1,6 +1,14 @@
 import { RedisMessage } from '../types';
+import {throwErrorIfInvalidInput} from "../imports/validation";
 
 export default function buildRedisMessage(sessionVariables: Record<string, unknown>, input: Record<string, unknown>): RedisMessage {
+  throwErrorIfInvalidInput(input,
+      [
+        {name: 'pollId', type: 'string', required: true},
+        {name: 'answer', type: 'string', required: true},
+      ]
+  )
+
   const eventName = `RespondToTypedPollReqMsg`;
 
   const routing = {
@@ -20,9 +28,6 @@ export default function buildRedisMessage(sessionVariables: Record<string, unkno
     questionId: 0,
     answer: input.answer
   };
-
-  //TODO Validate answer length in the Backend (Meteor.settings.public.poll.maxTypedAnswerLength)
-  //TODO Check if answer exists and use the same ID (backend)
 
   return { eventName, routing, header, body };
 }

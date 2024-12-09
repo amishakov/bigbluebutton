@@ -1,9 +1,14 @@
 import { RedisMessage } from '../types';
-import { ValidationError } from '../types/ValidationError';
-import {throwErrorIfNotPresenter} from "../imports/validation";
+import {throwErrorIfInvalidInput} from "../imports/validation";
 
 export default function buildRedisMessage(sessionVariables: Record<string, unknown>, input: Record<string, unknown>): RedisMessage {
-  throwErrorIfNotPresenter(sessionVariables);
+  throwErrorIfInvalidInput(input,
+      [
+        {name: 'pageId', type: 'string', required: true},
+        {name: 'annotationsIds', type: 'stringArray', required: true},
+      ]
+  )
+
   const eventName = `DeleteWhiteboardAnnotationsPubMsg`;
 
   const routing = {

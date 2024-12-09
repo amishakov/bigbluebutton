@@ -19,10 +19,9 @@ const UserListDropdownPluginStateContainer = ((
   const [
     userListDropdownItems,
     setUserListDropdownItems,
-  ] = useState<PluginSdk.UserListDropdownItem[]>([]);
+  ] = useState<PluginSdk.UserListDropdownInterface[]>([]);
 
   const {
-    pluginsExtensibleAreasAggregatedState,
     setPluginsExtensibleAreasAggregatedState,
   } = useContext(PluginsContext);
 
@@ -32,21 +31,21 @@ const UserListDropdownPluginStateContainer = ((
 
     // Update context with computed aggregated list of all plugin provided toolbar items
     const aggregatedUserListDropdownItems = (
-      [] as PluginSdk.UserListDropdownItem[]).concat(
+      [] as PluginSdk.UserListDropdownInterface[]).concat(
       ...Object.values(extensibleAreaMap)
         .map((extensibleArea: ExtensibleArea) => extensibleArea.userListDropdownItems),
     );
-    setPluginsExtensibleAreasAggregatedState(
+    setPluginsExtensibleAreasAggregatedState((previousState) => (
       {
-        ...pluginsExtensibleAreasAggregatedState,
+        ...previousState,
         userListDropdownItems: aggregatedUserListDropdownItems,
-      },
-    );
+      }));
   }, [userListDropdownItems]);
 
-  pluginApi.setUserListDropdownItems = (items: PluginSdk.UserListDropdownItem[]) => {
-    const itemsWithId = items.map(generateItemWithId) as PluginSdk.UserListDropdownItem[];
-    return setUserListDropdownItems(itemsWithId);
+  pluginApi.setUserListDropdownItems = (items: PluginSdk.UserListDropdownInterface[]) => {
+    const itemsWithId = items.map(generateItemWithId) as PluginSdk.UserListDropdownInterface[];
+    setUserListDropdownItems(itemsWithId);
+    return itemsWithId.map((i) => i.id);
   };
   return null;
 }) as ExtensibleAreaComponentManager;

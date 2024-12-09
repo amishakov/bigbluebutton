@@ -1,21 +1,22 @@
 require('dotenv').config();
-const { expect, default: test } = require('@playwright/test');
+const { expect, test } = require('@playwright/test');
 const { readFileSync } = require('fs');
-
 const parameters = require('./parameters');
 const helpers = require('./helpers');
 const e = require('./elements');
 const { env } = require('node:process');
-const { ELEMENT_WAIT_TIME, ELEMENT_WAIT_LONGER_TIME, VIDEO_LOADING_WAIT_TIME } = require('./constants');
-const { recordMeeting } = require('../parameters/constants');
+const { ELEMENT_WAIT_TIME, ELEMENT_WAIT_LONGER_TIME, VIDEO_LOADING_WAIT_TIME, ELEMENT_WAIT_EXTRA_LONG_TIME } = require('./constants');
 const { checkElement, checkElementLengthEqualTo } = require('./util');
-const { generateSettingsData, getSettings } = require('./settings');
+const { generateSettingsData } = require('./settings');
 
 class Page {
   constructor(browser, page) {
     this.browser = browser;
     this.page = page;
     this.initParameters = Object.assign({}, parameters);
+    try {
+      this.context = page.context();
+    } catch { } // page doesn't have context - likely an iframe
   }
 
   async bringToFront() {
@@ -28,12 +29,12 @@ class Page {
   }
 
   async init(isModerator, shouldCloseAudioModal, initOptions) {
-    const { fullName, meetingId, createParameter, joinParameter, customMeetingId, isRecording } = initOptions || {};
+    const { fullName, meetingId, createParameter, joinParameter, customMeetingId, isRecording, shouldCheckAllInitialSteps } = initOptions || {};
 
     if (!isModerator) this.initParameters.moderatorPW = '';
     if (fullName) this.initParameters.fullName = fullName;
     this.username = this.initParameters.fullName;
-    
+
     if (env.CONSOLE !== undefined) await helpers.setBrowserLogs(this.page);
 
     this.meetingId = (meetingId) ? meetingId : await helpers.createMeeting(parameters, createParameter, customMeetingId, this.page);
@@ -41,11 +42,14 @@ class Page {
     const response = await this.page.goto(joinUrl);
     await expect(response.ok()).toBeTruthy();
     const hasErrorLabel = await this.checkElement(e.errorMessageLabel);
-    await expect(hasErrorLabel, 'Getting error when joining. Check if the BBB_URL and BBB_SECRET are set correctly').toBeFalsy();
-    this.settings = await generateSettingsData(this.page);
-    const { autoJoinAudioModal } = this.settings;
-    if (isRecording && !isModerator) await this.closeRecordingModal();
-    if (shouldCloseAudioModal && autoJoinAudioModal) await this.closeAudioModal();
+    await expect(hasErrorLabel, 'should pass the authentication and the layout element should be displayed').toBeFalsy();
+    if (shouldCheckAllInitialSteps != undefined ? shouldCheckAllInitialSteps : true) {
+      await this.waitForSelector('div#layout', ELEMENT_WAIT_EXTRA_LONG_TIME);
+      this.settings = await generateSettingsData(this.page);
+      const { autoJoinAudioModal } = this.settings;
+      if (isRecording && !isModerator) await this.closeRecordingModal();
+      if (shouldCloseAudioModal && autoJoinAudioModal) await this.closeAudioModal();
+    }
   }
 
   async handleDownload(locator, testInfo, timeout = ELEMENT_WAIT_TIME) {
@@ -85,30 +89,38 @@ class Page {
   async leaveAudio() {
     await this.waitAndClick(e.audioDropdownMenu);
     await this.waitAndClick(e.leaveAudio);
-    await this.waitForSelector(e.joinAudio);
+    await this.hasElement(e.joinAudio, 'should display the join audio button');
   }
 
   async logoutFromMeeting() {
-    await this.waitAndClick(e.optionsButton);
-    await this.waitAndClick(e.logout);
+    const { directLeaveButton } = this.settings;
+
+    if (directLeaveButton) {
+      await this.waitAndClick(e.leaveMeetingDropdown);
+      await this.waitAndClick(e.directLogoutButton);
+    } else {
+      await this.waitAndClick(e.optionsButton);
+      await this.waitAndClick(e.optionsLogoutButton);
+    }
   }
 
   async shareWebcam(shouldConfirmSharing = true, videoPreviewTimeout = ELEMENT_WAIT_TIME) {
-    const { webcamSharingEnabled } = getSettings();
+    const { webcamSharingEnabled } = this.settings || await generateSettingsData(this.page);
+
     test.fail(!webcamSharingEnabled, 'Webcam sharing is disabled');
 
     if(!webcamSharingEnabled) {
-      return this.wasRemoved(e.joinVideo)
+      return this.wasRemoved(e.joinVideo, 'should not display the join video button')
     }
     await this.waitAndClick(e.joinVideo);
     if (shouldConfirmSharing) {
       await this.bringToFront();
-      await this.waitForSelector(e.videoPreview, videoPreviewTimeout);
+      await this.hasElement(e.webcamMirroredVideoPreview, 'should display the video preview when sharing webcam ', videoPreviewTimeout);
       await this.waitAndClick(e.startSharingWebcam);
     }
-    await this.waitForSelector(e.webcamContainer, VIDEO_LOADING_WAIT_TIME);
+    await this.waitForSelector(e.webcamMirroredVideoContainer, VIDEO_LOADING_WAIT_TIME);
     await this.waitForSelector(e.leaveVideo, VIDEO_LOADING_WAIT_TIME);
-    await this.wasRemoved(e.webcamConnecting);
+    await this.wasRemoved(e.webcamConnecting, VIDEO_LOADING_WAIT_TIME);
   }
 
   getLocator(selector) {
@@ -130,7 +142,7 @@ class Page {
   }
 
   async closeAudioModal() {
-    await this.waitForSelector(e.audioModal, ELEMENT_WAIT_LONGER_TIME);
+    await this.hasElement(e.audioModal, 'should display the audio modal', ELEMENT_WAIT_EXTRA_LONG_TIME);
     await this.waitAndClick(e.closeModal);
   }
 
@@ -162,7 +174,7 @@ class Page {
 
   async type(selector, text) {
     const handle = this.getLocator(selector);
-    await handle.focus();
+    //await handle.focus();
     await handle.type(text, { timeout: ELEMENT_WAIT_TIME });
   }
 
@@ -187,9 +199,9 @@ class Page {
     return this.page.evaluate(checkElement, [selector, index]);
   }
 
-  async wasRemoved(selector, timeout = ELEMENT_WAIT_TIME) {
+  async wasRemoved(selector, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(selector);
-    await expect(locator).toBeHidden({ timeout });
+    await expect(locator, description).toBeHidden({ timeout });
   }
 
   async wasNthElementRemoved(selector, count, timeout = ELEMENT_WAIT_TIME) {
@@ -197,29 +209,29 @@ class Page {
     await expect(locator).toBeHidden({ timeout });
   }
 
-  async hasElement(selector, timeout = ELEMENT_WAIT_TIME) {
+  async hasElement(selector, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(selector);
-    await expect(locator).toBeVisible({ timeout });
+    await expect(locator, description).toBeVisible({ timeout });
   }
 
-  async hasNElements(selector, count, timeout = ELEMENT_WAIT_TIME) {
+  async hasNElements(selector, count, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(':nth-match(' + selector + ',' + count + ')');
-    await expect(locator).toBeVisible({ timeout });
+    await expect(locator, description).toBeVisible({ timeout });
   }
 
-  async hasElementDisabled(selector, timeout = ELEMENT_WAIT_TIME) {
+  async hasElementDisabled(selector, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(selector);
-    await expect(locator).toBeDisabled({ timeout });
+    await expect(locator, description).toBeDisabled({ timeout });
   }
 
-  async hasElementEnabled(selector, timeout = ELEMENT_WAIT_TIME) {
+  async hasElementEnabled(selector, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(`${selector}:not([disabled])`);
-    await expect(locator).toBeEnabled({ timeout });
+    await expect(locator, description).toBeEnabled({ timeout });
   }
 
-  async hasText(selector, text, timeout = ELEMENT_WAIT_TIME) {
+  async hasText(selector, text, description, timeout = ELEMENT_WAIT_TIME) {
     const locator = this.getLocator(selector).first();
-    await expect(locator).toContainText(text, { timeout });
+    await expect(locator, description).toContainText(text, { timeout });
   }
 
   async haveTitle(title) {
@@ -254,14 +266,14 @@ class Page {
     await this.page.mouse.up();
   }
 
-  async checkElementCount(selector, count) {
+  async checkElementCount(selector, count, description) {
     const locator = await this.page.locator(selector);
-    await expect(locator).toHaveCount(count);
+    await expect(locator, description).toHaveCount(count, { timeout: ELEMENT_WAIT_LONGER_TIME });
   }
 
-  async hasValue(selector, value) {
+  async hasValue(selector, value, description) {
     const locator = await this.page.locator(selector);
-    await expect(locator).toHaveValue(value);
+    await expect(locator, description).toHaveValue(value);
   }
 
   async backgroundColorTest(selector, color) {
@@ -278,9 +290,10 @@ class Page {
 
   async comparingSelectorsBackgroundColor(selector1, selector2) {
     const getBackgroundColorComputed = (locator) => locator.evaluate((elem) => getComputedStyle(elem).backgroundColor);
-    const avatarInToastElementColor = this.page.locator(selector1);
-    const avatarInUserListColor = this.page.locator(selector2);
-    await expect(getBackgroundColorComputed(avatarInToastElementColor)).toStrictEqual(getBackgroundColorComputed(avatarInUserListColor));
+    const avatarInToastElementColor = this.getLocator(selector1);
+    const avatarInUserListColor = this.getLocator(selector2);
+    await expect(await getBackgroundColorComputed(avatarInToastElementColor))
+      .toStrictEqual(await getBackgroundColorComputed(avatarInUserListColor));
   }
 
   async reloadPage() {
@@ -292,12 +305,24 @@ class Page {
   }
 
   async closeAllToastNotifications() {
-    await this.page.waitForSelector(e.whiteboard);
       const closeToastBtnLocator = this.page.locator(e.closeToastBtn);
       while (await closeToastBtnLocator.count() > 0) {
-        await this.page.click(e.closeToastBtn);
-        await helpers.sleep(1000);  // expected time to toast notification disappear
+        await this.page.click(e.closeToastBtn, { timeout: ELEMENT_WAIT_TIME });
+        await helpers.sleep(1500);  // expected time to toast notification disappear
       }
+  }
+
+  async setHeightWidthViewPortSize() {
+    await this.page.setViewportSize({ width: 1366, height: 768 });
+  }
+
+  async getYoutubeFrame() {
+    await this.waitForSelector(e.youtubeFrame);
+    const iframeElement = await this.getLocator('iframe').elementHandle();
+    const frame = await iframeElement.contentFrame();
+    await frame.waitForURL(/youtube/, { timeout: ELEMENT_WAIT_TIME });
+    const ytFrame = new Page(this.page.browser, frame);
+    return ytFrame;
   }
 }
 

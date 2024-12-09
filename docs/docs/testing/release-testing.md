@@ -14,7 +14,7 @@ This document is meant to be a combination of manual and (labeled so) automated 
 The <b>automated tests</b> are only a portion of the testing done before a release. Ideally they should be triggered often, for example when testing pull requests, or once a day automatically.
 
 The <b>manual tests</b> really help to ensure release quality. They should
-be performed by humans using different browsers. It is usefull to have multiple
+be performed by humans using different browsers. It is useful to have multiple
 humans performing these tests together. You should plan at least an hour to perform
 all of these tests.
 
@@ -158,7 +158,7 @@ all of these tests.
 
 2. Click "Options" (three dots icon on top-right of the presentation area), select "Snapshot of current presentation".
 
-3. You should get promted to save the file. The file should contains the image of the current slide of the presentation, including the annotations applied.
+3. You should get prompted to save the file. The file should contains the image of the current slide of the presentation, including the annotations applied.
 
 ### Fit to width option
 
@@ -228,7 +228,7 @@ You should now have presenter capabilities and presenter icon should appear over
 
 5. Click the webcam's fullscreen button again.
 
-6. Click the undo fulscreen button ("Undo [user name] fullscreen").
+6. Click the undo fullscreen button ("Undo [user name] fullscreen").
 
 7. The webcam should exit the fullscreen and go back to normal size.
 
@@ -304,7 +304,7 @@ The webcam will be resized as per the size we want.
 
 B. Case of more than one webcam.
 
-- Share atleast 2 webcams
+- Share at least 2 webcams
 - Drag the bottom of the webcams container
 - Increase or Decrease the size of the webcams.
 
@@ -387,7 +387,7 @@ The screen sharing stops, a sound effect of disconnection is heard and the prese
 
 ## Breakout rooms
 
-### Moderators creating breakout rooms and assiging users [(Automated)](https://github.com/bigbluebutton/bigbluebutton/blob/v2.6.x-release/bigbluebutton-tests/playwright/breakout/breakout.spec.js)
+### Moderators creating breakout rooms and assigning users [(Automated)](https://github.com/bigbluebutton/bigbluebutton/blob/v2.6.x-release/bigbluebutton-tests/playwright/breakout/breakout.spec.js)
 
 1. Click "Manage users" (cog wheel icon in the user list).
 
@@ -471,7 +471,7 @@ The screen sharing stops, a sound effect of disconnection is heard and the prese
 
 2. Inside the breakout rooms control panel ("Breakout Rooms" button in the left-hand panel), select the "Breakout options" dropdown and choose "Destroy breakouts".
 
-3. All of the breaout rooms should end and all users should get back to the main room. If users already got the audio on, they shouldn't get propmted for the audio modal.
+3. All of the breakout rooms should end and all users should get back to the main room. If users already got the audio on, they shouldn't get prompted for the audio modal.
 
 ### Edit the duration of a breakout room
 
@@ -519,7 +519,7 @@ The screen sharing stops, a sound effect of disconnection is heard and the prese
 
 4. Change the microphone and speaker using the dropdowns (if applicable).
 
-5. Press "Stop audio feedback button" and verify that you dont hear your audio anymore, while the audio stream volume bar is still functional. Clicking that button again should turn on the audio feedback again.
+5. Press "Stop audio feedback button" and verify that you don't hear your audio anymore, while the audio stream volume bar is still functional. Clicking that button again should turn on the audio feedback again.
 
 6. Click "Yes".
 
@@ -698,7 +698,7 @@ Enable Microphone : This will cause a user name to appear on left top corner of 
 
 6. Presenter: Draw on the whiteboard area.
 
-7. All clients should see the drawing and the drawing should appear according to the chosed thickness.
+7. All clients should see the drawing and the drawing should appear according to the chosen thickness.
 
 ### Changing pencil tool colour
 
@@ -820,7 +820,7 @@ Enable Microphone : This will cause a user name to appear on left top corner of 
 
 7. The result of those actions should be visible for all clients.
 
-### Stoping Youtube Video Sharing
+### Stopping Youtube Video Sharing
 
 1. Join a meeting.
 
@@ -1116,7 +1116,7 @@ Share notes should export and download in the chosen format.
 
 8. Moderator: demote another moderator (click on the user name in the user list and select "Demote to viewer").
 
-9. Demoted moderator: shouldn't be able to send private chat messages to viewrs.
+9. Demoted moderator: shouldn't be able to send private chat messages to viewers.
 
 10. Moderator: promote a viewer (click on the user name in the user list and select "Promote to moderator").
 
@@ -1222,7 +1222,7 @@ Share notes should export and download in the chosen format.
 
 4. Moderator: toggle one of the lock setting (it becomes "Locked"), click "Apply".
 
-5. Moderator: click on a vewer's user name in the user list, then select "Unlock User [user name]".
+5. Moderator: click on a viewer's user name in the user list, then select "Unlock User [user name]".
 
 6. Unlocked user: should be able to use the features that were previously unlocked.
 
@@ -1470,7 +1470,7 @@ Note :
 
 1. Join meeting.
 
-2. Click on the "Options" button in the top-right corver of the client (three dots icon).
+2. Click on the "Options" button in the top-right corner of the client (three dots icon).
 
 3. Dropdown list should appear with a list of available options.
 
@@ -1667,7 +1667,7 @@ Note :
 
 10. Moderator: type in the textbox, press Enter or click "Send" button. The message should be visible to all waiting viewers on their lobby screens (as well as in the moderator's waiting users panel).
 
-11. Moderator: click "Message" for a specific viewer in the list, type in the textbox, press Enter or click "Send" button. The message should appear only for that cpecific viewer.
+11. Moderator: click "Message" for a specific viewer in the list, type in the textbox, press Enter or click "Send" button. The message should appear only for that specific viewer.
 
 - Click "Deny everyone". All the waiting viewers should see the message "Guest denied of joining the meeting" and should soon be redirected to the home page. All new viewers should not be effected by this, but instead they should be placed in the waiting lobby.
 
@@ -1679,7 +1679,7 @@ Note :
 
 - Click "Accept" for the specific user in the waiting users panel. That viewer should be accepted into the meeting.
 
-- Click "Deny" for the specific user in teh waiting users panel. That viewer should see the message "Guest denied of joining the meeting" and should soon be redirected to the home page.
+- Click "Deny" for the specific user in the waiting users panel. That viewer should see the message "Guest denied of joining the meeting" and should soon be redirected to the home page.
 
 ## Recording
 
@@ -1717,7 +1717,7 @@ Note :
 
 ## Custom Parameters [(Automated)](https://github.com/bigbluebutton/bigbluebutton/blob/v2.6.x-release/bigbluebutton-tests/playwright/customparameters/customparameters.spec.js)
 
-Client should apply custom parameters according to the descriptions from [here](/administration/customize#application-parameters).
+Client should apply user metadata according to the descriptions from [here](/administration/customize#application-parameters).
 
 ## iFrame
 
